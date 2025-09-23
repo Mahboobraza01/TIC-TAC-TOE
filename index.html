@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tic Tac Toe </title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Tic Tac Toe</h1>
+  
+  <!-- Mode selection -->
+  <div id="modeSelect">
+    <label>
+      <input type="radio" name="mode" value="friend" checked> Play with Friend
+    </label>
+    <label>
+      <input type="radio" name="mode" value="computer"> Play vs Computer
+    </label>
+  </div>
+
+  <div id="scoreboard">
+    <span id="scoreX">X wins: 0</span> |
+    <span id="scoreO">O wins: 0</span> |
+    <span id="scoreDraw">Draws: 0</span>
+  </div>
+
+  <div id="game">
+    <div class="cell" data-index="0"></div>
+    <div class="cell" data-index="1"></div>
+    <div class="cell" data-index="2"></div>
+    <div class="cell" data-index="3"></div>
+    <div class="cell" data-index="4"></div>
+    <div class="cell" data-index="5"></div>
+    <div class="cell" data-index="6"></div>
+    <div class="cell" data-index="7"></div>
+    <div class="cell" data-index="8"></div>
+  </div>
+  
+  <div id="message"></div>
+  <button id="resetBtn">Reset Game</button>
+  <p class="copyright">© by_mr.mahboobraza</p>
+
+  <script src="script.js"></script>
+</body>
+</html>

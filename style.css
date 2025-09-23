@@ -1,0 +1,70 @@
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  margin: 0;
+  padding: 20px;
+  background-color: #f38484;
+}
+
+h1 {
+  margin-bottom: 10px;
+  text-decoration: underline;
+}
+
+#modeSelect {
+  margin-bottom: 15px;
+  font-size: 1.1em;
+}
+
+#modeSelect label {
+  margin-right: 20px;
+  cursor: pointer;
+}
+
+#scoreboard {
+  margin-bottom: 20px;
+  font-size: 1.2em;
+}
+
+#game {
+  width: 300px;
+  height: 300px;
+  margin: 0 auto;
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  gap: 5px;
+}
+
+.cell {
+  background-color: #fff;
+  border: 2px solid #333;
+  font-size: 2em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.cell:hover {
+  background-color: #ddd;
+}
+
+.cell.winning {
+  background-color: #8fbc8f; /* light green highlight when win */
+}
+
+#message {
+  margin-top: 20px;
+  font-size: 1.2em;
+}
+
+#resetBtn {
+  margin-top: 10px;
+  padding: 10px 20px;
+  font-size: 1em;
+  cursor: pointer;
+}
+.copyright{
+                    padding-top: 70px;
+}
