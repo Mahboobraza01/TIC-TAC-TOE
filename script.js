@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
       currentPlayer = 'O';
       messageEl.textContent = `Computer's turn (O)`;
       setTimeout(() => {
-        const aiIdx = getRandomEmptyCell();
+        const aiIdx = getBestMove();
         if (aiIdx !== null) {
           makeMove(aiIdx, 'O');
           const aiCell = document.querySelector(`.cell[data-index='${aiIdx}']`);
