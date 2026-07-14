@@ -70,15 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function getRandomEmptyCell() {
-    const emptyIndices = board
-      .map((val, idx) => val === '' ? idx : null)
-      .filter(i => i !== null);
-    if (emptyIndices.length === 0) return null;
-    const rand = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
-    return rand;
-  }
-
   function makeMove(index, player) {
     board[index] = player;
   }
@@ -146,6 +137,70 @@ document.addEventListener('DOMContentLoaded', () => {
       c.classList.remove('winning');
     });
     mode = getSelectedMode();
+  }
+
+  // ===== Minimax AI =====
+
+  // Checks winner on any board state (used inside minimax simulation)
+  function checkWinnerOnBoard(b) {
+    for (let combo of winningConditions) {
+      const [a, bIdx, c] = combo;
+      if (b[a] !== '' && b[a] === b[bIdx] && b[bIdx] === b[c]) {
+        return b[a]; // 'X' or 'O'
+      }
+    }
+    if (!b.includes('')) return 'draw';
+    return null; // game still going
+  }
+
+  function minimax(newBoard, depth, isMaximizing) {
+    const result = checkWinnerOnBoard(newBoard);
+
+    if (result !== null) {
+      if (result === 'O') return 10 - depth;   // computer wins — prefer faster wins
+      if (result === 'X') return depth - 10;   // human wins — prefer slower losses
+      return 0;                                 // draw
+    }
+
+    if (isMaximizing) {
+      let best = -Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (newBoard[i] === '') {
+          newBoard[i] = 'O';
+          best = Math.max(best, minimax(newBoard, depth + 1, false));
+          newBoard[i] = '';
+        }
+      }
+      return best;
+    } else {
+      let best = Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (newBoard[i] === '') {
+          newBoard[i] = 'X';
+          best = Math.min(best, minimax(newBoard, depth + 1, true));
+          newBoard[i] = '';
+        }
+      }
+      return best;
+    }
+  }
+
+  function getBestMove() {
+    let bestScore = -Infinity;
+    let move = null;
+
+    for (let i = 0; i < 9; i++) {
+      if (board[i] === '') {
+        board[i] = 'O';
+        let scoreVal = minimax(board, 0, false); // next turn is human = minimizing
+        board[i] = '';
+        if (scoreVal > bestScore) {
+          bestScore = scoreVal;
+          move = i;
+        }
+      }
+    }
+    return move;
   }
 
   // Event listeners
