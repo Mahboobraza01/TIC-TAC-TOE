@@ -1,77 +1,198 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // ===== Screens =====
+  const setupScreen = document.getElementById('setupScreen');
+  const gameScreen = document.getElementById('gameScreen');
+
+  // ===== Setup screen elements =====
+  const markToggle = document.getElementById('markToggle');
+  const toggleBtns = markToggle.querySelectorAll('.toggle-btn');
+  const startCpuBtn = document.getElementById('startCpuBtn');
+  const startFriendBtn = document.getElementById('startFriendBtn');
+
+  // ===== Game screen elements =====
+  const homeBtn = document.getElementById('homeBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const turnIcon = document.getElementById('turnIcon');
   const cells = document.querySelectorAll('.cell');
   const messageEl = document.getElementById('message');
-  const resetBtn = document.getElementById('resetBtn');
-  const modeRadios = document.getElementsByName('mode');
 
-  const scoreXEl = document.getElementById('scoreX');
-  const scoreOEl = document.getElementById('scoreO');
-  const scoreDrawEl = document.getElementById('scoreDraw');
+  const scoreXLabel = document.getElementById('scoreXLabel');
+  const scoreOLabel = document.getElementById('scoreOLabel');
+  const scoreXValue = document.getElementById('scoreXValue');
+  const scoreOValue = document.getElementById('scoreOValue');
+  const scoreDrawValue = document.getElementById('scoreDrawValue');
 
+  // ===== Icons =====
+  const xIconSVG = () =>
+    `<svg viewBox="0 0 24 24" class="mark-icon mark-x"><path d="M5 5L19 19M19 5L5 19" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>`;
+  const oIconSVG = () =>
+    `<svg viewBox="0 0 24 24" class="mark-icon mark-o"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="4"/></svg>`;
+
+  // ===== State =====
+  let humanMark = 'X';       // mark chosen by player 1 on setup screen
+  let cpuMark = 'O';
+  let vsMode = 'cpu';        // 'cpu' or 'friend'
   let board = ['', '', '', '', '', '', '', '', ''];
-  let currentPlayer = 'X';
+  let currentPlayer = 'X';   // X always goes first
   let isGameActive = true;
-  let mode = 'friend';  // 'friend' or 'computer'
 
   let score = { X: 0, O: 0, draw: 0 };
 
   const winningConditions = [
-    [0,1,2],
-    [3,4,5],
-    [6,7,8],
-    [0,3,6],
-    [1,4,7],
-    [2,5,8],
-    [0,4,8],
-    [2,4,6]
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6]
   ];
 
-  function getSelectedMode() {
-    for (let r of modeRadios) {
-      if (r.checked) {
-        return r.value;
-      }
-    }
-    return 'friend';
+  // ===== Setup screen: mark toggle =====
+  toggleBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      toggleBtns.forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      humanMark = btn.getAttribute('data-mark');
+      cpuMark = humanMark === 'X' ? 'O' : 'X';
+    });
+  });
+
+  startCpuBtn.addEventListener('click', () => {
+    vsMode = 'cpu';
+    startGame();
+  });
+
+  startFriendBtn.addEventListener('click', () => {
+    vsMode = 'friend';
+    startGame();
+  });
+
+  homeBtn.addEventListener('click', () => {
+    score = { X: 0, O: 0, draw: 0 };
+    gameScreen.classList.add('hidden');
+    setupScreen.classList.remove('hidden');
+  });
+
+  resetBtn.addEventListener('click', () => {
+    resetBoard();
+  });
+
+  // ===== Start / setup a new game =====
+  function startGame() {
+    setupScreen.classList.add('hidden');
+    gameScreen.classList.remove('hidden');
+    updateLabels();
+    resetBoard();
   }
+
+  function updateLabels() {
+    if (vsMode === 'cpu') {
+      scoreXLabel.textContent = humanMark === 'X' ? 'X (You)' : 'X (CPU)';
+      scoreOLabel.textContent = humanMark === 'O' ? 'O (You)' : 'O (CPU)';
+    } else {
+      scoreXLabel.textContent = 'X';
+      scoreOLabel.textContent = 'O';
+    }
+  }
+
+  function resetBoard() {
+    board = ['', '', '', '', '', '', '', '', ''];
+    isGameActive = true;
+    currentPlayer = 'X';
+    messageEl.textContent = '';
+    messageEl.className = 'message';
+    cells.forEach(c => {
+      c.innerHTML = '';
+      c.classList.remove('winning');
+    });
+    updateTurnIndicator();
+
+    // If computer is X, it goes first
+    if (vsMode === 'cpu' && currentPlayer === cpuMark) {
+      setTimeout(cpuMove, 400);
+    }
+  }
+
+  // ===== Cell click (human move) =====
+  cells.forEach(cell => cell.addEventListener('click', handleCellClick));
 
   function handleCellClick(e) {
-    const cell = e.target;
+    const cell = e.currentTarget;
     const index = parseInt(cell.getAttribute('data-index'));
 
-    if (board[index] !== '' || !isGameActive) return;
+    if (!isGameActive || board[index] !== '') return;
+    if (vsMode === 'cpu' && currentPlayer !== humanMark) return; // not human's turn
 
-    makeMove(index, currentPlayer);
-    cell.textContent = currentPlayer;
+    playMove(index, currentPlayer);
 
-    checkResult();
-
-    if (isGameActive && mode === 'computer' && currentPlayer === 'X') {
-      // computer's turn (O)
-      currentPlayer = 'O';
-      messageEl.textContent = `Computer's turn (O)`;
-      setTimeout(() => {
-        const aiIdx = getBestMove();
-        if (aiIdx !== null) {
-          makeMove(aiIdx, 'O');
-          const aiCell = document.querySelector(`.cell[data-index='${aiIdx}']`);
-          aiCell.textContent = 'O';
-          checkResult();
-        }
-        if (isGameActive) {
-          currentPlayer = 'X';
-          messageEl.textContent = `Player ${currentPlayer}'s turn`;
-        }
-      }, 500);
-    } else if (isGameActive) {
-      // friend mode or after computer move
-      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-      messageEl.textContent = `Player ${currentPlayer}'s turn`;
+    if (isGameActive) {
+      switchTurn();
+      if (vsMode === 'cpu' && currentPlayer === cpuMark) {
+        setTimeout(cpuMove, 400);
+      }
     }
   }
 
-  function makeMove(index, player) {
+  function switchTurn() {
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+    updateTurnIndicator();
+  }
+
+  function updateTurnIndicator() {
+    turnIcon.innerHTML = currentPlayer === 'X' ? xIconSVG() : oIconSVG();
+  }
+
+  // ===== Apply a move to board + UI, then check result =====
+  function playMove(index, player) {
     board[index] = player;
+    const cell = document.querySelector(`.cell[data-index='${index}']`);
+    cell.innerHTML = player === 'X' ? xIconSVG() : oIconSVG();
+    checkResult();
+  }
+
+  function checkResult() {
+    let roundWon = false;
+    let winLine = null;
+
+    for (let combo of winningConditions) {
+      const [a, b, c] = combo;
+      if (board[a] !== '' && board[a] === board[b] && board[b] === board[c]) {
+        roundWon = true;
+        winLine = combo;
+        break;
+      }
+    }
+
+    if (roundWon) {
+      highlightWinning(winLine);
+      const winType = currentPlayer === 'X' ? 'win-x' : 'win-o';
+      showResultMessage(winnerMessage(currentPlayer), winType);
+      isGameActive = false;
+      updateScore(currentPlayer);
+      return;
+    }
+
+    if (!board.includes('')) {
+      showResultMessage("It's a draw!", 'draw');
+      isGameActive = false;
+      updateScore('draw');
+    }
+  }
+
+  function showResultMessage(text, type) {
+    messageEl.textContent = text;
+    // reset animation so it replays even if the same class is reapplied
+    messageEl.className = 'message';
+    void messageEl.offsetWidth; // force reflow
+    messageEl.className = `message show ${type}`;
+  }
+
+  function winnerMessage(winner) {
+    if (vsMode === 'cpu') {
+      return winner === humanMark ? 'You win!' : 'Computer wins!';
+    }
+    return `Player ${winner} wins!`;
   }
 
   function highlightWinning(line) {
@@ -81,92 +202,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function checkResult() {
-    let roundWon = false;
-    let winLine = null;
-
-    for (let combo of winningConditions) {
-      const [a, b, c] = combo;
-      if (
-        board[a] !== '' &&
-        board[a] === board[b] &&
-        board[b] === board[c]
-      ) {
-        roundWon = true;
-        winLine = combo;
-        break;
-      }
-    }
-
-    if (roundWon) {
-      highlightWinning(winLine);
-      messageEl.textContent = `Player ${currentPlayer} wins!`;
-      isGameActive = false;
-      updateScore(currentPlayer);
-      return;
-    }
-
-    if (!board.includes('')) {
-      messageEl.textContent = "It's a draw!";
-      isGameActive = false;
-      updateScore('draw');
-      return;
-    }
-  }
-
   function updateScore(winner) {
     if (winner === 'X') {
       score.X += 1;
-      scoreXEl.textContent = `X wins: ${score.X}`;
+      scoreXValue.textContent = score.X;
     } else if (winner === 'O') {
       score.O += 1;
-      scoreOEl.textContent = `O wins: ${score.O}`;
-    } else if (winner === 'draw') {
+      scoreOValue.textContent = score.O;
+    } else {
       score.draw += 1;
-      scoreDrawEl.textContent = `Draws: ${score.draw}`;
+      scoreDrawValue.textContent = score.draw;
     }
   }
 
-  function resetGame() {
-    board = ['', '', '', '', '', '', '', '', ''];
-    isGameActive = true;
-    currentPlayer = 'X';
-    messageEl.textContent = `Player ${currentPlayer}'s turn`;
-    cells.forEach(c => {
-      c.textContent = '';
-      c.classList.remove('winning');
-    });
-    mode = getSelectedMode();
-  }
-
   // ===== Minimax AI =====
-
-  // Checks winner on any board state (used inside minimax simulation)
   function checkWinnerOnBoard(b) {
     for (let combo of winningConditions) {
       const [a, bIdx, c] = combo;
       if (b[a] !== '' && b[a] === b[bIdx] && b[bIdx] === b[c]) {
-        return b[a]; // 'X' or 'O'
+        return b[a];
       }
     }
     if (!b.includes('')) return 'draw';
-    return null; // game still going
+    return null;
   }
 
   function minimax(newBoard, depth, isMaximizing) {
     const result = checkWinnerOnBoard(newBoard);
 
     if (result !== null) {
-      if (result === 'O') return 10 - depth;   // computer wins — prefer faster wins
-      if (result === 'X') return depth - 10;   // human wins — prefer slower losses
-      return 0;                                 // draw
+      if (result === cpuMark) return 10 - depth;
+      if (result === humanMark) return depth - 10;
+      return 0;
     }
 
     if (isMaximizing) {
       let best = -Infinity;
       for (let i = 0; i < 9; i++) {
         if (newBoard[i] === '') {
-          newBoard[i] = 'O';
+          newBoard[i] = cpuMark;
           best = Math.max(best, minimax(newBoard, depth + 1, false));
           newBoard[i] = '';
         }
@@ -176,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let best = Infinity;
       for (let i = 0; i < 9; i++) {
         if (newBoard[i] === '') {
-          newBoard[i] = 'X';
+          newBoard[i] = humanMark;
           best = Math.min(best, minimax(newBoard, depth + 1, true));
           newBoard[i] = '';
         }
@@ -191,8 +265,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     for (let i = 0; i < 9; i++) {
       if (board[i] === '') {
-        board[i] = 'O';
-        let scoreVal = minimax(board, 0, false); // next turn is human = minimizing
+        board[i] = cpuMark;
+        const scoreVal = minimax(board, 0, false);
         board[i] = '';
         if (scoreVal > bestScore) {
           bestScore = scoreVal;
@@ -203,16 +277,17 @@ document.addEventListener('DOMContentLoaded', () => {
     return move;
   }
 
-  // Event listeners
-  cells.forEach(cell => cell.addEventListener('click', handleCellClick));
-  resetBtn.addEventListener('click', resetGame);
-  modeRadios.forEach(r => {
-    r.addEventListener('change', () => {
-      resetGame();
-    });
-  });
+  function cpuMove() {
+    if (!isGameActive) return;
+    const idx = getBestMove();
+    if (idx !== null) {
+      playMove(idx, cpuMark);
+    }
+    if (isGameActive) {
+      switchTurn();
+    }
+  }
 
-  // Init
-  mode = getSelectedMode();
-  messageEl.textContent = `Player ${currentPlayer}'s turn`;
+  // ===== Init =====
+  updateTurnIndicator();
 });
